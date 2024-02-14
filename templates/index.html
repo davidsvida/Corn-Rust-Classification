@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corn</title>
+    <style>
+        body {
+            background-color: white;
+            font-family: Arial, sans-serif;
+            font-size: 1.2em;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .result-key {
+            font-weight: bold; 
+            font-size: 1.1em;
+            color: #000000; 
+            background-color: #E32636;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: inline-block;
+        }
+
+
+        h3 {
+            color: #003333;
+            text-align: center;
+        }
+        .img-part, .btn-part, .res-part {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .image-part {
+            height: auto;
+            width: 90%;
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .image-part img {
+            display: block;
+            object-fit: contain;
+            max-width: 100%; 
+            max-height: 60vh; 
+            width: auto; 
+            height: auto; 
+            margin: auto; 
+        }
+
+        .btn-part button {
+            margin: 5px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h3>Corn Classification</h3>
+    <div class="img-part">
+        <div class="image-part">
+            <img src="" id="photo">
+            <canvas style="display:none;" id="canvas"></canvas>
+        </div>
+    </div>
+    <div class="btn-part">
+        <button type="button" class="btn-primary" id="uload">Upload</button>
+        <button id="send" type="button" class="btn-success">Predict</button>
+        <form id="upload-data">
+            <input type="hidden" id="url" value="../predict"/>
+            <input type="file" id="fileinput"/>
+        </form>
+    </div>
+    <div class="res-part"></div>
+
+    <div id="loading" style="display:none;"><div class="loader"></div></div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script>
+        var base_data = "";
+
+        function sendRequest(base64Data) {
+            var url = $("#url").val();
+            $("#loading").show();
+            $.ajax({
+                url: url,
+                type: "post",
+                cache: false,
+                async: true,
+                crossDomain: true,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                data: JSON.stringify({image: base64Data}),
+                success: function(res) {
+                    $(".res-part").html("");
+                    try {
+                        var imageData = res[1].image;
+                    } catch(e) {}
+                    var result = res[0]
+                    var resultText = "";
+                    for (var key in result) {
+                        if (result.hasOwnProperty(key)) {
+                            resultText += "<center><span class='result-key'>" + result[key] + "</span> </center>";
+                        }
+                    }
+                    $(".res-part").html(resultText);
+                    $("#loading").hide();
+                }
+            });
+        }
+
+        $(document).ready(function() {
+
+            if ($('#photo').attr('src') === '') {
+                $('#photo').attr('src', 'https://t3.ftcdn.net/jpg/02/68/55/60/360_F_268556012_c1WBaKFN5rjRxR2eyV33znK4qnYeKZjm.jpg'); 
+                $('#photo').show();
+            }
+
+            $("#loading").hide();
+
+            $('#send').click(function(evt) {
+                sendRequest(base_data);
+            });
+
+            $('#uload').click(function(evt) {
+                $('#fileinput').focus().trigger('click');
+            });
+            $("#fileinput").change(function() {
+                if (this.files && this.files[0]) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        var url = e.target.result;
+                        var img = new Image();
+                        img.crossOrigin = 'Anonymous';
+                        img.onload = function() {
+                            var canvas = document.createElement('CANVAS');
+                            var ctx = canvas.getContext('2d');
+                            canvas.height = this.height;
+                            canvas.width = this.width;
+                            ctx.drawImage(this, 0, 0);
+                            base_data = canvas.toDataURL('image/jpeg', 1.0).replace(/^data:image.+;base64,/, '');
+                            canvas = null;
+                        };
+                        img.src = url;
+                        $('#photo').attr('src', url);
+                        $('#photo').show();
+                        $('#video').hide();
+                    }
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
